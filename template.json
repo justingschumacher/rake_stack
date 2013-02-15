@@ -1,0 +1,310 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "rake_stack example template",
+  "Mappings": {
+    "AWSInstanceType2Arch": {
+      "c1.medium": {
+        "Arch": "64"
+      },
+      "c1.xlarge": {
+        "Arch": "64"
+      },
+      "cc1.4xlarge": {
+        "Arch": "64"
+      },
+      "m1.small": {
+        "Arch": "64"
+      },
+      "m1.medium": {
+        "Arch": "64"
+      },
+      "m1.large": {
+        "Arch": "64"
+      },
+      "m1.xlarge": {
+        "Arch": "64"
+      },
+      "m2.2xlarge": {
+        "Arch": "64"
+      },
+      "m2.4xlarge": {
+        "Arch": "64"
+      },
+      "m2.xlarge": {
+        "Arch": "64"
+      },
+      "t1.micro": {
+        "Arch": "64"
+      }
+    },
+    "AWSRegionArch2AMI": {
+      "ap-northeast-1": {
+        "32": "ami-486cd349",
+        "64": "ami-4e6cd34f"
+      },
+      "ap-southeast-1": {
+        "32": "ami-a2a7e7f0",
+        "64": "ami-a6a7e7f4"
+      },
+      "ap-southeast-2": {
+        "32": "ami-b3990e89",
+        "64": "ami-bd990e87"
+      },
+      "eu-west-1": {
+        "32": "ami-937474e7",
+        "64": "ami-c37474b7"
+      },
+      "sa-east-1": {
+        "32": "ami-e209d0ff",
+        "64": "ami-1e08d103"
+      },
+      "us-east-1": {
+        "32": "ami-1a249873",
+        "64": "ami-1624987f"
+      },
+      "us-west-1": {
+        "32": "ami-19f9de5c",
+        "64": "ami-1bf9de5e"
+      },
+      "us-west-2": {
+        "32": "ami-2231bf12",
+        "64": "ami-2a31bf1a"
+      }
+    }
+  },
+  "Outputs": {
+    "Instance": {
+      "Description": "DNS Name of the newly created EC2 instance",
+      "Value": {
+        "Fn::GetAtt": [
+          "Ec2Instance",
+          "PublicDnsName"
+        ]
+      }
+    }
+  },
+  "Parameters": {
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "Default": "m1.small",
+      "Description": "EC2 instance type, e.g. m1.small, m1.large, etc.",
+      "Type": "String"
+    },
+    "AWSAccessKey": {
+      "Type": "String",
+      "NoEcho": "TRUE"
+    },
+    "AWSSecretAccessKey": {
+      "Type": "String",
+      "NoEcho": "TRUE"
+    }
+  },
+  "Resources": {
+    "Ec2Instance": {
+      "Metadata": {
+        "AWS::CloudFormation::Init": {
+          "config": {
+            "files": {
+              "/home/ec2-user/config.yml": {
+                "content": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "access_key_id: ",
+                      {
+                        "Ref": "AWSAccessKey"
+                      },
+                      "\n",
+                      "secret_access_key: ",
+                      {
+                        "Ref": "AWSSecretAccessKey"
+                      },
+                      "\n"
+                    ]
+                  ]
+                },
+                "group": "ec2-user",
+                "mode": "000600",
+                "owner": "ec2-user"
+              }
+            },
+            "sources": {
+            },
+            "packages": {
+              "yum": {
+                "git": [
+
+                ],
+                "gcc-c++": [
+
+                ],
+                "gcc": [
+
+                ],
+                "make": [
+
+                ],
+                "autoconf": [
+
+                ],
+                "automake": [
+
+                ],
+                "libxslt-devel": [
+
+                ],
+                "libxml2-devel": [
+
+                ],
+                "libcurl-devel": [
+
+                ],
+                "ruby19-devel": [
+
+                ]
+              }
+            }
+          }
+        }
+      },
+      "Properties": {
+        "ImageId": {
+          "Fn::FindInMap": [
+            "AWSRegionArch2AMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            {
+              "Fn::FindInMap": [
+                "AWSInstanceType2Arch",
+                {
+                  "Ref": "InstanceType"
+                },
+                "Arch"
+              ]
+            }
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "KeyName": {
+          "Ref": "KeyName"
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "Ec2SecurityGroup"
+          }
+        ],
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash\n",
+                "# Get Updates _Before_ CfnInit Runs\n",
+                "yum update -y\n",
+                "# Helper function\n",
+                "function error_exit \n",
+                "{\n",
+                "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '",
+                {
+                  "Ref": "WaitHandle"
+                },
+                "'\n",
+                "  exit 1\n",
+                "}\n",
+                "# Install packages and write files in AWS::CloudFormation::Init\n",
+                "/opt/aws/bin/cfn-init -s ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                " -r Ec2Instance ",
+                "    --access-key ",
+                {
+                  "Ref": "AWSAccessKey"
+                },
+                "    --secret-key ",
+                {
+                  "Ref": "AWSSecretAccessKey"
+                },
+                "    --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                " || error_exit 'Failed to run cfn-init'\n",
+                "# Get Updates _After_ CfnInit Runs\n",
+                "yum update -y\n",
+                "ln -sf /usr/bin/ruby1.9 /usr/bin/ruby\n",
+                "ln -sf /usr/bin/gem1.9 /usr/bin/gem\n",
+                "ln -sf /usr/bin/irb1.9 /usr/bin/irb\n",
+                "ln -sf /usr/bin/rdoc1.9 /usr/bin/rdoc\n",
+                "ln -sf /usr/bin/rake1.9 /usr/bin/rake\n",
+                "# Get Updates _After_ CfnInit Runs\n",
+                "gem update\n",
+                "gem install --no-ri --no-rdoc rake dnsruby mechanize chef aws-sdk systemu multi_json thor bigdecimal curb\n",
+                "echo 'export AWS_ACCESS_KEY=",
+                {
+                  "Ref": "AWSAccessKey"
+                },
+                "'  >> /home/ec2-user/.bash_profile\n",
+                "echo 'export AWS_SECRET_ACCESS_KEY=",
+                {
+                  "Ref": "AWSSecretAccessKey"
+                },
+                "'  >> /home/ec2-user/.bash_profile\n",
+                "echo 'export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY' >> /home/ec2-user/.bash_profile\n",
+                "echo 'export AWS_SECRET_KEY=$AWS_SECRET_ACCESS_KEY' >> /home/ec2-user/.bash_profile\n",
+                "echo 'export PATH=/opt/aws/bin:$PATH' >> /home/ec2-user/.bash_profile\n",
+                "echo 'export AWS_CREDENTIALS_FILE=/home/ec2-user/.aws-credentials' >> /home/ec2-user/.bash_profile\n",
+                "echo 'export AWS_CREDENTIAL_FILE=$AWS_CREDENTIALS_FILE' >> /home/ec2-user/.bash_profile\n",
+                "# All is well so signal success\n",
+                "/opt/aws/bin/cfn-signal -e 0 -r \"cfn-int setup complete\" '",
+                {
+                  "Ref": "WaitHandle"
+                },
+                "'\n"
+              ]
+            ]
+          }
+        }
+      },
+      "Type": "AWS::EC2::Instance"
+    },
+    "Ec2SecurityGroup": {
+      "Properties": {
+        "GroupDescription": "SSH access on port 80 and 22",
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "22",
+            "IpProtocol": "tcp",
+            "ToPort": "22"
+          },
+          {
+            "CidrIp": "0.0.0.0/0",
+            "FromPort": "80",
+            "IpProtocol": "tcp",
+            "ToPort": "80"
+          }
+        ]
+      },
+      "Type": "AWS::EC2::SecurityGroup"
+    },
+    "WaitCondition": {
+      "Type": "AWS::CloudFormation::WaitCondition",
+      "Properties": {
+        "Handle": {
+          "Ref": "WaitHandle"
+        },
+        "Timeout": "1200"
+      }
+    },
+    "WaitHandle": {
+      "Type": "AWS::CloudFormation::WaitConditionHandle"
+    }
+  }
+}

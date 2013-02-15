@@ -1,0 +1,25 @@
+{
+ "AWSInstanceType2Arch": {
+      "c1.medium"       : { "Arch": "64" },
+      "c1.xlarge"       : { "Arch": "64" },
+      "cc1.4xlarge"     : { "Arch": "64" },
+      "m1.small"        : { "Arch": "64" },
+      "m1.medium"       : { "Arch": "64" },
+      "m1.large"        : { "Arch": "64" },
+      "m1.xlarge"       : { "Arch": "64" }, 
+      "m2.2xlarge"      : { "Arch": "64" }, 
+      "m2.4xlarge"      : { "Arch": "64" }, 
+      "m2.xlarge"       : { "Arch": "64" }, 
+      "t1.micro"        : { "Arch": "64" }
+  },
+  "AWSRegionArch2AMI"   : {
+      "ap-northeast-1"  : { "32": "ami-486cd349", "64": "ami-4e6cd34f" },
+      "ap-southeast-1"  : { "32": "ami-a2a7e7f0", "64": "ami-a6a7e7f4" },
+      "ap-southeast-2"  : { "32": "ami-b3990e89", "64": "ami-bd990e87" },
+      "eu-west-1"       : { "32": "ami-937474e7", "64": "ami-c37474b7" },
+      "sa-east-1"       : { "32": "ami-e209d0ff", "64": "ami-1e08d103" },
+      "us-east-1"       : { "32": "ami-1a249873", "64": "ami-1624987f" },
+      "us-west-1"       : { "32": "ami-19f9de5c", "64": "ami-1bf9de5e" },
+      "us-west-2"       : { "32": "ami-2231bf12", "64": "ami-2a31bf1a" }
+  }
+} 

@@ -21,6 +21,12 @@ Add your AWS access keys.
 vi config.yml
 ```
 
+Edit UserData shell script. This example will be merged into the UserData property of the Ec2Instance resource
+
+``` bash
+vi userdata_Ec2Instance.sh
+```
+
 Example Usage:
 
 ``` bash

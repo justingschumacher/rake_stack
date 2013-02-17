@@ -10,6 +10,7 @@ require 'json'
 @template_filename = 'template.json'
 @parameters_filename = 'parameters.yml'
 @mappings_filename = 'mappings.json'
+@outputs_filename = 'outputs.yml'
 @stack_filename = 'stack.yml'
 @log_filename = 'aws-sdk.log'
 
@@ -118,3 +119,26 @@ task :delete do
     puts e
   end
 end
+
+task :outputs do
+  desc "Get the Outputs from a CloudFormation Stack"
+  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  stack = @cfm.stacks[stack_name]
+  begin
+    if stack.status == 'CREATE_COMPLETE' and not stack.outputs.empty?
+      outputs = Hash[stack.outputs.map {|o| [o.key, o.value] }]
+      File.open( @outputs_filename, 'w' ){ |file|
+        YAML.dump(outputs, file)
+      }
+      puts "Output! stack #{stack_name}"
+      puts outputs
+    else
+      puts "No Outputs yet."
+    end
+  rescue AWS::CloudFormation::Errors::ValidationError => e
+    puts e
+  end
+end
+
+task :replace => [:delete, :create]
+

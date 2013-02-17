@@ -9,8 +9,10 @@ Features:
 
 * Validate the template with CloudFormation directly
 * Merge a common Mappings section into the template
+* Merge resource specific Cloud-Init UserData into the template
 * Extract template Parameters section to a YAML file
 * Configuration, Parameters, Outputs, Ids in YAML files
+* Get stack events to stdout
 * Create, Update, Delete, a CloudFormation stack
 
 Config:

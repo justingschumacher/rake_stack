@@ -23,10 +23,13 @@ AWS.config(:access_key_id     => @config[:access_key_id],
            :log_formatter => AWS::Core::LogFormatter.colored)
 
 region = @config[:region] || 'us-east-1'
-cloud_formation_endpoint = "cloudformation.#{region}.amazonaws.com"
 
-@cfm = AWS::CloudFormation.new :max_retries => 10,
-                               :cloud_formation_endpoint => cloud_formation_endpoint
+@cfm = AWS::CloudFormation.new( 
+  :cloud_formation_endpoint => "cloudformation.#{region}.amazonaws.com",
+  :max_retries => 10 )
+
+region == 'us-east-1' ? s3_endpoint = "s3.amazonaws.com" : s3_endpoint = "s3-#{region}.amazonaws.com"
+@s3 = AWS::S3.new( :s3_endpoint => s3_endpoint )
 
 def params
   credentials = AWS.config.credentials
@@ -176,6 +179,30 @@ task :events do
   events = stack.events.collect {|e| "#{e.timestamp} #{e.resource_type} #{e.logical_resource_id} #{e.physical_resource_id} #{e.resource_status} #{e.resource_status_reason}"}
   File.open( @events_filename, 'w' ){ |file| events }
   puts events
+end
+
+task :bucket do
+  bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
+  begin
+    bucket = @s3.buckets.create(bucket_name)
+    puts "Bucket and Policy! #{bucket_name}"
+  end
+  begin
+    policy = AWS::S3::Policy.new
+    policy.allow(
+      :actions => ['s3:GetBucketAcl', 's3:GetBucketPolicy'],
+      :resources => "arn:aws:s3:::#{bucket_name}",
+      :principals => "arn:aws:iam::386209384616:root" )
+    policy.allow(
+      :actions => ['s3:PutObject'],
+      :resources => "arn:aws:s3:::#{bucket_name}/*",
+      :principals => "arn:aws:iam::386209384616:root" )
+    bucket.policy = policy
+    puts "Go here to enable Cost Allocation and Billing Reports:"
+    puts "https://portal.aws.amazon.com/gp/aws/developer/account/index.html?ie=UTF8&ie=UTF8&action=billing-preferences"
+    puts "Go here to manage Cost Allocation Reports:"
+    puts "https://portal.aws.amazon.com/gp/aws/developer/account?ie=UTF8&action=cost-allocation-report"
+  end
 end
 
 task :replace => [:delete, :create]

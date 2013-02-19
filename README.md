@@ -13,6 +13,7 @@ Features:
 * Extract template Parameters section to a YAML file
 * Configuration, Parameters, Outputs, Ids in YAML files
 * Get stack events to stdout
+* Create an Amazon S3 bucket with IAM Policy for Cost Allocation and Billing Reports
 * Create, Update, Delete, a CloudFormation stack
 
 Config:

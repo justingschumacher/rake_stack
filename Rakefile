@@ -181,6 +181,42 @@ task :events do
   puts events
 end
 
+task :stage do
+  bucket_name = YAML.load_file(@config_filename)[:staging_bucket]
+  prefix = YAML.load_file(@config_filename)[:staging_prefix]
+  begin
+    bucket = @s3.buckets[bucket_name]
+    file_names = FileList.new("template.json")
+    file_names.each do |file_name|
+      path = Pathname.new(file_name)
+      unless path.directory?
+        key = "#{prefix}/#{path}"
+        uri = "https://#{bucket_name}.s3.amazonaws.com/#{key}"
+        puts uri
+        bucket.objects[key].write(path)
+      end
+    end
+  end
+end
+
+task :buckets => [:staging_bucket, :billing_bucket]
+
+task :staging_bucket do
+  bucket_name = YAML.load_file(@config_filename)[:staging_bucket]
+  begin
+    bucket = @s3.buckets.create(bucket_name)
+    puts "Staging Bucket! #{bucket_name}"
+  end
+  begin
+    policy = AWS::S3::Policy.new
+    policy.allow(
+      :actions => ['s3:GetObject'],
+      :resources => "arn:aws:s3:::#{bucket_name}/*",
+      :principals => :any)
+    bucket.policy = policy
+  end
+end
+
 task :billing_bucket do
   bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
   begin

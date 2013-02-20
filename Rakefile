@@ -181,11 +181,11 @@ task :events do
   puts events
 end
 
-task :bucket do
+task :billing_bucket do
   bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
   begin
     bucket = @s3.buckets.create(bucket_name)
-    puts "Bucket and Policy! #{bucket_name}"
+    puts "Billing Bucket! #{bucket_name}"
   end
   begin
     policy = AWS::S3::Policy.new
@@ -198,10 +198,31 @@ task :bucket do
       :resources => "arn:aws:s3:::#{bucket_name}/*",
       :principals => "arn:aws:iam::386209384616:root" )
     bucket.policy = policy
+    puts "Policy! #{bucket_name}"
     puts "Go here to enable Cost Allocation and Billing Reports:"
     puts "https://portal.aws.amazon.com/gp/aws/developer/account/index.html?ie=UTF8&ie=UTF8&action=billing-preferences"
     puts "Go here to manage Cost Allocation Reports:"
     puts "https://portal.aws.amazon.com/gp/aws/developer/account?ie=UTF8&action=cost-allocation-report"
+  end
+end
+
+task :reports do
+  bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
+  reports_dir = YAML.load_file(@config_filename)[:reports_dir]
+  bucket = @s3.buckets[bucket_name]
+  objects = AWS::S3::ObjectCollection.new(bucket, :limit => 100)
+  objects.each do |obj|
+    path = Pathname.new("#{reports_dir}/#{obj.key}")
+    if path.directory?
+      path.dirname.mkpath
+    else
+      File.open(path, 'w') do |file|
+        obj.read do |chunk|
+          file.write(chunk)
+        end
+      end
+    end
+    puts path
   end
 end
 

@@ -17,7 +17,8 @@ Features:
 * Create, Update, Delete, a CloudFormation stack
 * Create Amazon S3 buckets with necessary policy for billing and cost allocation reports
 * Download billing and cost allocation reports from the S3 bucket
-* Create an Amazon S3 bucket with public access policy for stagin the CloudFormation template
+* Create an Amazon S3 bucket with public access policy for staging the CloudFormation template
+* Sum total allocated cost of stack run (tax and credits are applied) from cost allocation reports.
 
 Config:
 
@@ -52,4 +53,12 @@ Stage to Amazon S3:
 rake validate
 rake buckets
 rake stage
+```
+
+Enable collection of reports and get cost:
+
+```bash
+rake buckets
+rake reports
+rake cost
 ```

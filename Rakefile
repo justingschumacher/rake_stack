@@ -262,4 +262,22 @@ task :reports do
   end
 end
 
+task :cost do
+  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  reports_dir = YAML.load_file(@config_filename)[:reports_dir]
+  files = FileList.new("#{reports_dir}/[0-9{12}]*aws-cost-allocation*.csv")
+  puts "Actual! from:"
+  puts files
+  totals = Hash.new(0)
+  files.each do |file|
+    headers = File.open(file).readlines[1]
+    CSV.foreach(file, :headers => headers, :converters => :numeric) do |row|
+     if row['aws:cloudformation:stack-name'] == stack_name
+       totals[row['aws:cloudformation:stack-name']] += row['CostBeforeTax']
+     end
+    end
+  end
+  puts totals
+end
+
 task :replace => [:delete, :create]

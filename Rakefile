@@ -6,8 +6,6 @@ require 'fileutils'
 require 'logger'
 require 'json'
 require 'find'
-require 'pathname'
-require 'csv'
 
 @config_filename = 'config.yml'
 @template_filename = 'template.json'
@@ -59,31 +57,17 @@ end
 
 task :default => [:validate]
 
-desc "Validate the Template with CloudFormation."
 task :validate do
   desc "Validate the stack.template with CloudFormation."
   @cfm.validate_template(File.open(@template_filename).read)
   puts "CloudFormation Template Validated!"
 end
 
-desc "Merge the Mapping and UserData sections."
-task :merge => [:merge_mappings, :merge_user_data]
-
-desc "Merge a Mappings section."
-task :merge_mappings do
+task :merge do
+  desc "Merge a Mappings section and resource specific Cloud-Init format UserData sections."
   mappings = JSON.parse(File.open(@mappings_filename).read)
   template = JSON.parse(File.open(@template_filename).read)
   template['Mappings'] = mappings
-  template = JSON.pretty_generate(template)
-  if @cfm.validate_template(template)
-    File.open(@template_filename, 'w') { |f| f.puts template }
-  end
-  puts "Mappings merged into CloudFormation Template!"
-end
-
-desc "Merge resource specific Cloud-Init format UserData sections."
-task :merge_user_data do
-  template = JSON.parse(File.open(@template_filename).read)
   userdata_files = []
   Find.find('./') do |path|
     userdata_files << path if path.match(@userdata_filename_prefix)
@@ -100,19 +84,19 @@ task :merge_user_data do
   if @cfm.validate_template(template)
     File.open(@template_filename, 'w') { |f| f.puts template }
   end
-  puts "Cloud-Init UserData merged into CloudFormation Template!"
+  puts "Mappings merged into CloudFormation Template!"
 end
 
-desc "Create parameters.yml from the template Parameters section."
 task :parameters do
+  desc "Create parameters.yml from #{@template_filename} Parameters."
   template = JSON.parse(File.open(@template_filename).read)
   parameters = template['Parameters'].collect{ |k,v| {k => v['Default']} }.to_yaml
   File.open(@parameters_filename, 'w') { |f| f.puts parameters }
   puts "CloudFormation Template Parameters Grokked!"
 end
 
-desc "Create a CloudFormation Stack."
 task :create  => [:merge, :validate] do 
+  desc "Merge mappings #{@template_filename}."
   name = "stack-#{DateTime.now.strftime("%s")}"
   template = File.open(@template_filename).read
   begin
@@ -129,8 +113,8 @@ task :create  => [:merge, :validate] do
   puts "Run! stack: #{stack.name}"
 end
 
-desc "Update the CloudFormation Stack"
 task :update => [:merge, :validate] do
+  desc "Update the CloudFormation Stack"
   template = File.open(@template_filename).read
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   begin
@@ -141,8 +125,8 @@ task :update => [:merge, :validate] do
   end
 end
 
-desc "Describe the status of the CloudFormation Stack"
 task :status do
+  desc "Describe the status of the CloudFormation Stack"
   template = File.open(@template_filename).read
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   begin
@@ -157,8 +141,8 @@ task :status do
   end
 end
 
-desc "Delete the CloudFormation Stack"
 task :delete do
+  desc "Delete the CloudFormation Stack"
   template = File.open(@template_filename).read
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   begin
@@ -169,8 +153,8 @@ task :delete do
   end
 end
 
-desc "Get the Outputs from a CloudFormation Stack"
 task :outputs do
+  desc "Get the Outputs from a CloudFormation Stack"
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   stack = @cfm.stacks[stack_name]
   begin
@@ -189,7 +173,6 @@ task :outputs do
   end
 end
 
-desc "Get Events from the CloudFormation Stack"
 task :events do
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   stack = @cfm.stacks[stack_name]
@@ -198,7 +181,6 @@ task :events do
   puts events
 end
 
-desc "Stage the CloudFormation Template to the S3 Bucket"
 task :stage do
   bucket_name = YAML.load_file(@config_filename)[:staging_bucket]
   prefix = YAML.load_file(@config_filename)[:staging_prefix]
@@ -217,10 +199,8 @@ task :stage do
   end
 end
 
-desc "Create the Amazon S3 Buckets"
 task :buckets => [:staging_bucket, :billing_bucket]
 
-desc "Create the Amazon S3 staging Bucket"
 task :staging_bucket do
   bucket_name = YAML.load_file(@config_filename)[:staging_bucket]
   begin
@@ -237,7 +217,6 @@ task :staging_bucket do
   end
 end
 
-desc "Create the Amazon S3 billing Bucket"
 task :billing_bucket do
   bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
   begin
@@ -263,7 +242,6 @@ task :billing_bucket do
   end
 end
 
-desc "Download Cost Allocation and Billing Reports"
 task :reports do
   bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
   reports_dir = YAML.load_file(@config_filename)[:reports_dir]
@@ -284,7 +262,6 @@ task :reports do
   end
 end
 
-desc "Gather costs allocated to the CloudFormation stack from the cost allocation report."
 task :cost do
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   reports_dir = YAML.load_file(@config_filename)[:reports_dir]
@@ -303,5 +280,4 @@ task :cost do
   puts totals
 end
 
-desc "Delete and then Create a CloudFormation stack."
 task :replace => [:delete, :create]

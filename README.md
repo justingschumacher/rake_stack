@@ -5,7 +5,7 @@ Rake tasks for AWS CloudFormation templates and stacks.
 
 Clone the project, modify the template, run, and re-run, the Rake tasks.
 
-Features:
+# Features:
 
 * Validate the template with CloudFormation directly
 * Merge a common Mappings section into the template
@@ -20,23 +20,23 @@ Features:
 * Create an Amazon S3 bucket with public access policy for staging the CloudFormation template
 * Sum total allocated cost of stack run (tax and credits are applied) from cost allocation reports.
 
-Config:
+# Config:
 
-Add your AWS access keys.
+## Add your AWS access keys.
 
 ``` bash
 vi config.yml
 ```
 
-Edit UserData shell script. This example will be merged into the UserData property of the Ec2Instance resource
+## Edit UserData shell script. This example will be merged into the UserData property of the Ec2Instance resource
 
 ``` bash
 vi userdata_Ec2Instance.sh
 ```
 
-Example Usage:
+# Example Usage:
 
-Validate and create a CloudFormation Stack:
+## Validate and create a CloudFormation Stack:
 
 ``` bash
 rake merge
@@ -47,7 +47,7 @@ vi parameters.yml
 rake create
 ```
 
-Stage to Amazon S3:
+## Stage to Amazon S3:
 
 ```bash
 rake validate
@@ -55,10 +55,34 @@ rake buckets
 rake stage
 ```
 
-Enable collection of reports and get cost:
+## Enable collection of reports and get cost:
 
 ```bash
 rake buckets
 rake reports
 rake cost
+```
+
+## All Tasks
+
+```bash
+✗ rake -T
+rake billing_bucket   # Create the Amazon S3 billing Bucket
+rake buckets          # Create the Amazon S3 Buckets
+rake cost             # Gather costs allocated to the CloudFormation stack from t...
+rake create           # Create a CloudFormation Stack.
+rake delete           # Delete the CloudFormation Stack
+rake events           # Get Events from the CloudFormation Stack
+rake merge            # Merge the Mapping and UserData sections.
+rake merge_mappings   # Merge a Mappings section.
+rake merge_user_data  # Merge resource specific Cloud-Init format UserData sections.
+rake outputs          # Get the Outputs from a CloudFormation Stack
+rake parameters       # Create parameters.yml from the template Parameters section.
+rake replace          # Delete and then Create a CloudFormation stack.
+rake reports          # Download Cost Allocation and Billing Reports
+rake stage            # Stage the CloudFormation Template to the S3 Bucket
+rake staging_bucket   # Create the Amazon S3 staging Bucket
+rake status           # Describe the status of the CloudFormation Stack
+rake update           # Update the CloudFormation Stack
+rake validate         # Validate the Template with CloudFormation.
 ```

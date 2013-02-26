@@ -111,6 +111,13 @@ task :parameters do
   puts "CloudFormation Template Parameters Grokked!"
 end
 
+desc "Create Ec2Instance.sh from the Ec2Instance UserData."
+task   :userdata do
+  data = JSON.parse(File.open(@template_filename).read)['Resources']['Ec2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Join'][1]
+  File.open('userdata_Ec2Instance.sh', 'w') { |f| f.puts data.join }
+  puts "UserData!"  
+end
+
 desc "Create a CloudFormation Stack."
 task :create  => [:merge, :validate] do 
   name = "stack-#{DateTime.now.strftime("%s")}"

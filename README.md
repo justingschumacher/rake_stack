@@ -67,22 +67,23 @@ rake cost
 
 ```bash
 ✗ rake -T
-rake billing_bucket   # Create the Amazon S3 billing Bucket
-rake buckets          # Create the Amazon S3 Buckets
-rake cost             # Gather costs allocated to the CloudFormation stack from t...
-rake create           # Create a CloudFormation Stack.
-rake delete           # Delete the CloudFormation Stack
-rake events           # Get Events from the CloudFormation Stack
-rake merge            # Merge the Mapping and UserData sections.
-rake merge_mappings   # Merge a Mappings section.
-rake merge_user_data  # Merge resource specific Cloud-Init format UserData sections.
-rake outputs          # Get the Outputs from a CloudFormation Stack
-rake parameters       # Create parameters.yml from the template Parameters section.
-rake replace          # Delete and then Create a CloudFormation stack.
-rake reports          # Download Cost Allocation and Billing Reports
-rake stage            # Stage the CloudFormation Template to the S3 Bucket
-rake staging_bucket   # Create the Amazon S3 staging Bucket
-rake status           # Describe the status of the CloudFormation Stack
-rake update           # Update the CloudFormation Stack
-rake validate         # Validate the Template with CloudFormation.
+rake billing_bucket  # Create the Amazon S3 billing Bucket
+rake buckets         # Create the Amazon S3 Buckets
+rake cost            # Gather costs allocated to the CloudFormation stack f...
+rake create          # Create a CloudFormation Stack.
+rake delete          # Delete the CloudFormation Stack
+rake events          # Get Events from the CloudFormation Stack
+rake merge           # Merge the Mapping and UserData sections.
+rake merge_mappings  # Merge a Mappings section.
+rake merge_userdata  # Merge resource specific Cloud-Init format UserData s...
+rake outputs         # Get the Outputs from a CloudFormation Stack
+rake parameters      # Create parameters.yml from the template Parameters s...
+rake replace         # Delete and then Create a CloudFormation stack.
+rake reports         # Download Cost Allocation and Billing Reports
+rake stage           # Stage the CloudFormation Template to the S3 Bucket
+rake staging_bucket  # Create the Amazon S3 staging Bucket
+rake status          # Describe the status of the CloudFormation Stack
+rake update          # Update the CloudFormation Stack
+rake userdata        # Create Ec2Instance.sh from the Ec2Instance UserData.
+rake validate        # Validate the Template with CloudFormation.
 ```

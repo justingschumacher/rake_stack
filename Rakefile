@@ -67,7 +67,7 @@ task :validate do
 end
 
 desc "Merge the Mapping and UserData sections."
-task :merge => [:merge_mappings, :merge_user_data]
+task :merge => [:merge_mappings, :merge_userdata]
 
 desc "Merge a Mappings section."
 task :merge_mappings do
@@ -75,14 +75,12 @@ task :merge_mappings do
   template = JSON.parse(File.open(@template_filename).read)
   template['Mappings'] = mappings
   template = JSON.pretty_generate(template)
-  if @cfm.validate_template(template)
-    File.open(@template_filename, 'w') { |f| f.puts template }
-  end
+  File.open(@template_filename, 'w') { |f| f.puts template }
   puts "Mappings merged into CloudFormation Template!"
 end
 
 desc "Merge resource specific Cloud-Init format UserData sections."
-task :merge_user_data do
+task :merge_userdata do
   template = JSON.parse(File.open(@template_filename).read)
   userdata_files = []
   Find.find('./') do |path|
@@ -94,12 +92,8 @@ task :merge_user_data do
       template['Resources'][resource]['Properties']['UserData'] = JSON.parse(userdata_json)
     end
   end
-  
   template = JSON.pretty_generate(template)
-  
-  if @cfm.validate_template(template)
-    File.open(@template_filename, 'w') { |f| f.puts template }
-  end
+  File.open(@template_filename, 'w') { |f| f.puts template }
   puts "Cloud-Init UserData merged into CloudFormation Template!"
 end
 
@@ -112,14 +106,14 @@ task :parameters do
 end
 
 desc "Create Ec2Instance.sh from the Ec2Instance UserData."
-task   :userdata do
+task :userdata do
   data = JSON.parse(File.open(@template_filename).read)['Resources']['Ec2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Join'][1]
   File.open('userdata_Ec2Instance.sh', 'w') { |f| f.puts data.join }
   puts "UserData!"  
 end
 
 desc "Create a CloudFormation Stack."
-task :create  => [:merge, :validate] do 
+task :create  => [:validate] do 
   name = "stack-#{DateTime.now.strftime("%s")}"
   template = File.open(@template_filename).read
   begin

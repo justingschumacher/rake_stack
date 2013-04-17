@@ -201,11 +201,15 @@ end
 
 desc "Stage the CloudFormation Template to the S3 Bucket"
 task :stage do
-  bucket_name = YAML.load_file(@config_filename)[:staging_bucket]
-  prefix = YAML.load_file(@config_filename)[:staging_prefix]
+  bucket_name   = YAML.load_file(@config_filename)[:staging_bucket]
+  prefix        = YAML.load_file(@config_filename)[:staging_prefix]
+  includes_file = YAML.load_file(@config_filename)[:includes_file]
+  excludes_file = YAML.load_file(@config_filename)[:ignores_file]
   begin
     bucket = @s3.buckets[bucket_name]
-    file_names = FileList.new("template.json")
+    includes = File.open(includes_file).read.split
+    excludes = File.open(excludes_file).read.split
+    file_names = FileList.new(includes).exclude(excludes)
     file_names.each do |file_name|
       path = Pathname.new(file_name)
       unless path.directory?

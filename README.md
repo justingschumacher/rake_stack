@@ -55,6 +55,8 @@ rake buckets
 rake stage
 ```
 
+The stage task includes glob patterns in staging_files_manifest via [FileList](http://rake.rubyforge.org/classes/Rake/FileList.html "Class::Rake::FileList"), and excludes what is in .gitignore.
+
 ## Enable collection of reports and get cost:
 
 ```bash

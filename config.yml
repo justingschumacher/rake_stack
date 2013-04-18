@@ -1,9 +1,12 @@
+:aws_account_id: 
 :access_key_id: 
 :secret_access_key: 
-:region: us-east-1
 :billing_bucket: 
 :staging_bucket: 
+:production_bucket:
 :staging_prefix: 
+:keyname: 
+:region:
 :reports_dir: reports
 :includes_file: staging_files_manifest
 :ignores_file: .gitignore

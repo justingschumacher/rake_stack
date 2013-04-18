@@ -9,6 +9,8 @@ require 'find'
 require 'pathname'
 require 'csv'
 
+@@aws_regions = %w(us-east-1 us-west-1 us-west-2 eu-west-1 ap-southeast-1 ap-southeast-2 ap-northeast-1 sa-east-1)
+
 @config_filename = 'config.yml'
 @template_filename = 'template.json'
 @parameters_filename = 'parameters.yml'
@@ -18,18 +20,23 @@ require 'csv'
 @log_filename = 'aws-sdk.log'
 @userdata_filename_prefix = 'userdata_'
 
+# for single region operations
+region = @config[:region] || 'us-east-1'
+
+# for multi-region operations
+@regions = @config[:regions].nil? ? regions = @@aws_regions : regions = @config[:regions]
+
 @config = YAML.load_file(@config_filename)
 AWS.config(:access_key_id     => @config[:access_key_id], 
            :secret_access_key => @config[:secret_access_key],
            :logger => Logger.new(@log_filename),
            :log_formatter => AWS::Core::LogFormatter.colored)
 
-region = @config[:region] || 'us-east-1'
+# AWS CloudFormation
+cfm_endpoint =  "cloudformation.#{region}.amazonaws.com"
+@cfm = AWS::CloudFormation.new(:cloud_formation_endpoint => cfm_endpoint, :max_retries => 10)
 
-@cfm = AWS::CloudFormation.new( 
-  :cloud_formation_endpoint => "cloudformation.#{region}.amazonaws.com",
-  :max_retries => 10 )
-
+# Amazon Simple Storage Service (S3)
 region == 'us-east-1' ? s3_endpoint = "s3.amazonaws.com" : s3_endpoint = "s3-#{region}.amazonaws.com"
 @s3 = AWS::S3.new( :s3_endpoint => s3_endpoint )
 
@@ -199,12 +206,21 @@ task :events do
   puts events
 end
 
-desc "Stage the CloudFormation Template to the S3 Bucket"
+desc "Publish the CloudFormation template and related assets to the staging bucket."
 task :stage do
-  bucket_name   = YAML.load_file(@config_filename)[:staging_bucket]
-  prefix        = YAML.load_file(@config_filename)[:staging_prefix]
-  includes_file = YAML.load_file(@config_filename)[:includes_file]
-  excludes_file = YAML.load_file(@config_filename)[:ignores_file]
+  stage @config[:staging_bucket]
+end
+
+desc "Publish the CloudFormation template and related assets to the production bucket."
+task :publish do
+  stage @config[:production_bucket]
+end
+
+def stage bucket
+  bucket_name   = bucket || @config[:staging_bucket]
+  prefix        = @config[:staging_prefix]
+  includes_file = @config[:includes_file]
+  excludes_file = @config[:ignores_file]
   begin
     bucket = @s3.buckets[bucket_name]
     includes = File.open(includes_file).read.split

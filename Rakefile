@@ -9,7 +9,7 @@ require 'find'
 require 'pathname'
 require 'csv'
 
-@@aws_regions = %w(us-east-1 us-west-1 us-west-2 eu-west-1 ap-southeast-1 ap-southeast-2 ap-northeast-1 sa-east-1)
+@aws_regions = %w(us-east-1 us-west-1 us-west-2 eu-west-1 ap-southeast-1 ap-southeast-2 ap-northeast-1 sa-east-1)
 
 @config_filename = 'config.yml'
 @template_filename = 'template.json'
@@ -20,13 +20,14 @@ require 'csv'
 @log_filename = 'aws-sdk.log'
 @userdata_filename_prefix = 'userdata_'
 
+@config = YAML.load_file(@config_filename)
+
 # for single region operations
 region = @config[:region] || 'us-east-1'
 
 # for multi-region operations
-@regions = @config[:regions].nil? ? regions = @@aws_regions : regions = @config[:regions]
+@regions = @config[:regions].nil? ? regions = @aws_regions : regions = @config[:regions]
 
-@config = YAML.load_file(@config_filename)
 AWS.config(:access_key_id     => @config[:access_key_id], 
            :secret_access_key => @config[:secret_access_key],
            :logger => Logger.new(@log_filename),

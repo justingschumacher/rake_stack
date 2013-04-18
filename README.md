@@ -82,7 +82,8 @@ rake outputs         # Get the Outputs from a CloudFormation Stack
 rake parameters      # Create parameters.yml from the template Parameters s...
 rake replace         # Delete and then Create a CloudFormation stack.
 rake reports         # Download Cost Allocation and Billing Reports
-rake stage           # Stage the CloudFormation Template to the S3 Bucket
+rake publish         # Publish the CloudFormation template and related assets to the production bu...
+rake stage           # Publish the CloudFormation template and related assets to the staging bucket.
 rake staging_bucket  # Create the Amazon S3 staging Bucket
 rake status          # Describe the status of the CloudFormation Stack
 rake update          # Update the CloudFormation Stack

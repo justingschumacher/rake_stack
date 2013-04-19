@@ -77,8 +77,12 @@ task :default => [:validate]
 desc "Validate the Template with CloudFormation."
 task :validate do
   desc "Validate the stack.template with CloudFormation."
-  @cfm.validate_template(File.open(@template_filename).read)
-  puts "CloudFormation Template Validated!"
+  validation_result = @cfm.validate_template(File.open(@template_filename).read)
+  if (validation_result[:message])
+    puts validation_result[:message]
+  else
+    puts "CloudFormation Template Validated!"
+  end
 end
 
 desc "Merge the Mapping and UserData sections."

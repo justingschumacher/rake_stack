@@ -37,9 +37,16 @@ AWS.config(:access_key_id     => @config[:access_key_id],
 cfm_endpoint =  "cloudformation.#{region}.amazonaws.com"
 @cfm = AWS::CloudFormation.new(:cloud_formation_endpoint => cfm_endpoint, :max_retries => 10)
 
-# Amazon Simple Storage Service (S3)
+# Amazon Simple Storage Service (S3) for staging
 region == 'us-east-1' ? s3_endpoint = "s3.amazonaws.com" : s3_endpoint = "s3-#{region}.amazonaws.com"
-@s3 = AWS::S3.new( :s3_endpoint => s3_endpoint )
+@s3 = AWS::S3.new(:s3_endpoint => s3_endpoint)
+
+# Amazon Simple Storage Service (S3) with assumed role for publishing
+def s3_publish
+  sts = AWS::STS.new
+  user = sts.assume_role(:role_arn => @config[:publishing_role_arn], :role_session_name => "Upload")
+  AWS::S3.new(user[:credentials])
+end
 
 def params
   credentials = AWS.config.credentials
@@ -209,21 +216,23 @@ end
 
 desc "Publish the CloudFormation template and related assets to the staging bucket."
 task :stage do
-  stage @config[:staging_bucket]
+  upload @s3, @config[:staging_bucket]
 end
 
 desc "Publish the CloudFormation template and related assets to the production bucket."
 task :publish do
-  stage @config[:production_bucket]
+  upload s3_publish, @config[:production_bucket]
 end
 
-def stage bucket
+def upload s3_client, bucket
+  s3 = s3_client || @s3
   bucket_name   = bucket || @config[:staging_bucket]
   prefix        = @config[:staging_prefix]
   includes_file = @config[:includes_file]
   excludes_file = @config[:ignores_file]
+  full_ctrl_acct_email = @config[:full_ctrl_acct_email]
   begin
-    bucket = @s3.buckets[bucket_name]
+    bucket = s3.buckets[bucket_name]
     includes = File.open(includes_file).read.split
     excludes = File.open(excludes_file).read.split
     file_names = FileList.new(includes).exclude(excludes)
@@ -232,8 +241,8 @@ def stage bucket
       unless path.directory?
         key = "#{prefix}/#{path}"
         uri = "https://#{bucket_name}.s3.amazonaws.com/#{key}"
-        puts uri
         bucket.objects[key].write(path)
+        puts uri
       end
     end
   end

@@ -11,3 +11,4 @@
 :reports_dir: reports
 :includes_file: staging_files_manifest
 :ignores_file: .gitignore
+:cloudfront_distribution: 

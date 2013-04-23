@@ -252,6 +252,32 @@ def upload s3_client, bucket
   end
 end
 
+desc "Publish the CloudFormation template and related assets to the production bucket."
+task :publish_manual do
+  s3            = s3_publish
+  timestamp     = DateTime.now.strftime("%s")
+  bucket_name   = @config[:production_bucket]
+  prefix        = @config[:staging_prefix]
+  includes_file = @config[:includes_file]
+  excludes_file = @config[:ignores_file]
+  full_ctrl_acct_email = @config[:full_ctrl_acct_email]
+  cloudfront_distribution = @config[:cloudfront_distribution]
+  begin
+    bucket = s3.buckets[bucket_name]
+    includes = "*.pdf"
+    excludes = File.open(excludes_file).read.split
+    file_names = FileList.new(includes).exclude(excludes)
+    file_names.each do |file_name|
+      path = Pathname.new(file_name)
+      unless path.directory?
+        key = "#{prefix}/#{timestamp}/#{path}"
+        bucket.objects[key].write(path)
+        puts "https://#{cloudfront_distribution}/#{key}"
+      end
+    end
+  end
+end
+
 desc "Create the Amazon S3 Buckets"
 task :buckets => [:staging_bucket, :billing_bucket]
 

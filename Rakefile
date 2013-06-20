@@ -9,37 +9,37 @@ require 'find'
 require 'pathname'
 require 'csv'
 
-@aws_regions = %w(us-east-1 us-west-1 us-west-2 eu-west-1 ap-southeast-1 ap-southeast-2 ap-northeast-1 sa-east-1)
-
 @config_filename = 'config.yml'
+
+@config = YAML.load_file(@config_filename)
+@mappings_filename = @config[:mappings_filename]
+
 @template_filename = 'template.json'
 @parameters_filename = 'parameters.yml'
-@mappings_filename = 'mappings.json'
 @outputs_filename = 'outputs.yml'
 @stack_filename = 'stack.yml'
 @log_filename = 'aws-sdk.log'
 @userdata_filename_prefix = 'userdata_'
 
-@config = YAML.load_file(@config_filename)
-
-# for single region operations
-region = @config[:region] || 'us-east-1'
-
-# for multi-region operations
-@regions = @config[:regions].nil? ? regions = @aws_regions : regions = @config[:regions]
 
 AWS.config(:access_key_id     => @config[:access_key_id], 
            :secret_access_key => @config[:secret_access_key],
            :logger => Logger.new(@log_filename),
            :log_formatter => AWS::Core::LogFormatter.colored)
 
+@aws_regions = AWS.regions.collect
+
+# for single region operations
+@region = @config[:region] || 'us-east-1'
+
+# for multi-region operations
+@regions = @config[:regions].nil? ? regions = @aws_regions : regions = @config[:regions]
+
 # AWS CloudFormation
-cfm_endpoint =  "cloudformation.#{region}.amazonaws.com"
-@cfm = AWS::CloudFormation.new(:cloud_formation_endpoint => cfm_endpoint, :max_retries => 10)
+@cfm = AWS::CloudFormation.new(:region => @region, :max_retries => 10)
 
 # Amazon Simple Storage Service (S3) for staging
-region == 'us-east-1' ? s3_endpoint = "s3.amazonaws.com" : s3_endpoint = "s3-#{region}.amazonaws.com"
-@s3 = AWS::S3.new(:s3_endpoint => s3_endpoint)
+@s3 = AWS::S3.new(:region => @region)
 
 # Amazon Simple Storage Service (S3) with assumed role for publishing
 def s3_publish
@@ -150,7 +150,7 @@ task :create  => [:validate] do
 end
 
 desc "Update the CloudFormation Stack"
-task :update => [:merge, :validate] do
+task :update => [:validate] do
   template = File.open(@template_filename).read
   stack_name = YAML.load_file(@stack_filename)[:stack_name]
   begin
@@ -366,3 +366,50 @@ end
 
 desc "Delete and then Create a CloudFormation stack."
 task :replace => [:delete, :create]
+
+def register_keypair(keypair, public_key, region)
+  public_key = Base64.encode64(public_key.to_der)
+  ec2 = AWS::EC2.new :region => region
+  begin
+    ec2.key_pairs.import(keypair, public_key)
+    puts "Imported EC2 KeyPair '#{keypair}' in AWS region #{region}."
+  rescue AWS::EC2::Errors::InvalidKeyPair::Duplicate
+    puts "EC2 KeyPair '#{keypair}' already exists in AWS region #{region}."
+    return true
+  end
+end
+
+def delete_keypair(keypair, region)
+  ec2 = AWS::EC2.new :region => region
+  begin
+    ec2.key_pairs[keypair].delete
+    puts "Deleted EC2 KeyPair '#{keypair}' in AWS region #{region}."
+  rescue Error => e
+    puts e
+  end
+end
+
+task :keypair => [:keypair_delete , :keypair_create]
+
+desc "Create an SSH EC2 KeyPair"
+task :keypair_delete do
+  keyname = @config[:keyname]
+  @aws_regions.each { |region| delete_keypair(keyname, region.name) }
+end
+
+desc "Delete an SSH EC2 KeyPair"
+task :keypair_create do
+  keyname = @config[:keyname]
+  # create an RSA keypair
+  key = OpenSSL::PKey::RSA.new 2048
+  # save the RSA keypair's private key
+  File.open(".pk.pem", "w", 0600) do |f|
+    f.write(key.to_pem)
+  end
+  # save the RSA keypair's public key
+  File.open(".pub.pem", "w", 0600) do |f|
+    f.write(key.public_key.to_pem)
+  end
+  public_key = key.public_key
+  @aws_regions.each { |region| register_keypair(keyname, public_key, region.name) } 
+end

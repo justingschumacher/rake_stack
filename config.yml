@@ -11,4 +11,4 @@
 :reports_dir: reports
 :includes_file: staging_files_manifest
 :ignores_file: .gitignore
-:cloudfront_distribution: 
+:cloudfront_distribution: :mappings_filename: mappings.amzn-linux.2013.3.json

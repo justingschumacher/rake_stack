@@ -1,0 +1,25 @@
+{
+ "AWSInstanceType2Arch": {
+    "c1.medium"       : { "Arch": "64" },
+    "c1.xlarge"       : { "Arch": "64" },
+    "cc1.4xlarge"     : { "Arch": "64" },
+    "m1.small"        : { "Arch": "64" },
+    "m1.medium"       : { "Arch": "64" },
+    "m1.large"        : { "Arch": "64" },
+    "m1.xlarge"       : { "Arch": "64" }, 
+    "m2.2xlarge"      : { "Arch": "64" }, 
+    "m2.4xlarge"      : { "Arch": "64" }, 
+    "m2.xlarge"       : { "Arch": "64" }, 
+    "t1.micro"        : { "Arch": "64" }
+  },
+  "AWSRegionArch2AMI" : {
+    "us-east-1"      : { "32" : "ami-b3345bda", "64" : "ami-05355a6c", "64Cluster" : "ami-a73758ce", "64GPU" : "ami-cf3758a6" },
+    "us-west-2"      : { "32" : "ami-1958ce29", "64" : "ami-0358ce33", "64Cluster" : "ami-d75bcde7", "64GPU" : "NOT_YET_SUPPORTED" },
+    "us-west-1"      : { "32" : "ami-29fed16c", "64" : "ami-3ffed17a", "64Cluster" : "ami-47fed102", "64GPU" : "NOT_YET_SUPPORTED" },
+    "eu-west-1"      : { "32" : "ami-ddc1d7a9", "64" : "ami-c7c0d6b3", "64Cluster" : "ami-d1c0d6a5", "64GPU" : "ami-45c0d631" },
+    "ap-southeast-1" : { "32" : "ami-ccde919e", "64" : "ami-fade91a8", "64Cluster" : "ami-18de914a", "64GPU" : "NOT_YET_SUPPORTED" },
+    "ap-southeast-2" : { "32" : "ami-dd6bfbe7", "64" : "ami-d16bfbeb", "64Cluster" : "ami-876bfbbd", "64GPU" : "NOT_YET_SUPPORTED" },
+    "ap-northeast-1" : { "32" : "ami-2db23d2c", "64" : "ami-39b23d38", "64Cluster" : "ami-2db33c2c", "64GPU" : "NOT_YET_SUPPORTED" },
+    "sa-east-1"      : { "32" : "ami-58538945", "64" : "ami-5253894f", "64Cluster" : "ami-38538925", "64GPU" : "NOT_YET_SUPPORTED" }
+  }
+} 

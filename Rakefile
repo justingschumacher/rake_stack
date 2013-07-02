@@ -10,21 +10,11 @@ require 'pathname'
 require 'csv'
 
 @config_filename = 'config.yml'
-
 @config = YAML.load_file(@config_filename)
-@mappings_filename = @config[:mappings_filename]
-
-@template_filename = 'template.json'
-@parameters_filename = 'parameters.yml'
-@outputs_filename = 'outputs.yml'
-@stack_filename = 'stack.yml'
-@log_filename = 'aws-sdk.log'
-@userdata_filename_prefix = 'userdata_'
-
 
 AWS.config(:access_key_id     => @config[:access_key_id], 
            :secret_access_key => @config[:secret_access_key],
-           :logger => Logger.new(@log_filename),
+           :logger => Logger.new(@config[:log_filename]),
            :log_formatter => AWS::Core::LogFormatter.colored)
 
 @aws_regions = AWS.regions.collect
@@ -41,6 +31,9 @@ AWS.config(:access_key_id     => @config[:access_key_id],
 # Amazon Simple Storage Service (S3) for staging
 @s3 = AWS::S3.new(:region => @region)
 
+# Amazon EC2
+@ec2 = AWS::EC2.new(:region => @region)
+
 # Amazon Simple Storage Service (S3) with assumed role for publishing
 def s3_publish
   sts = AWS::STS.new
@@ -50,7 +43,7 @@ end
 
 def params
   credentials = AWS.config.credentials
-  parameters = Hash[*YAML.load(File.open(@parameters_filename).read).map(&:to_a).flatten]
+  parameters = Hash[*YAML.load(File.open(@config[:parameters_filename]).read).map(&:to_a).flatten]
   parameters['AWSAccessKey']       = @config[:access_key_id]     if parameters.has_key? 'AWSAccessKey'
   parameters['AWSSecretAccessKey'] = @config[:secret_access_key] if parameters.has_key? 'AWSSecretAccessKey'
   return parameters
@@ -77,7 +70,7 @@ task :default => [:validate]
 desc "Validate the Template with CloudFormation."
 task :validate do
   desc "Validate the stack.template with CloudFormation."
-  validation_result = @cfm.validate_template(File.open(@template_filename).read)
+  validation_result = @cfm.validate_template(File.open(@config[:template_filename]).read)
   if (validation_result[:message])
     puts validation_result[:message]
   else
@@ -90,20 +83,20 @@ task :merge => [:merge_mappings, :merge_userdata]
 
 desc "Merge a Mappings section."
 task :merge_mappings do
-  mappings = JSON.parse(File.open(@mappings_filename).read)
-  template = JSON.parse(File.open(@template_filename).read)
+  mappings = JSON.parse(File.open(@config[:mappings_filename]).read)
+  template = JSON.parse(File.open(@config[:template_filename]).read)
   template['Mappings'] = mappings
   template = JSON.pretty_generate(template)
-  File.open(@template_filename, 'w') { |f| f.puts template }
+  File.open(@config[:template_filename], 'w') { |f| f.puts template }
   puts "Mappings merged into CloudFormation Template!"
 end
 
 desc "Merge resource specific Cloud-Init format UserData sections."
 task :merge_userdata do
-  template = JSON.parse(File.open(@template_filename).read)
+  template = JSON.parse(File.open(@config[:template_filename]).read)
   userdata_files = []
   Find.find('./') do |path|
-    userdata_files << path if path.match(@userdata_filename_prefix)
+    userdata_files << path if path.match(@config[:userdata_filename_prefix])
     for userdata_file_name in userdata_files
       userdata_file_contents = File.open(userdata_file_name).read
       resource = userdata_file_name.split('_')[1].gsub(/\.sh/, '')
@@ -112,21 +105,21 @@ task :merge_userdata do
     end
   end
   template = JSON.pretty_generate(template)
-  File.open(@template_filename, 'w') { |f| f.puts template }
+  File.open(@config[:template_filename], 'w') { |f| f.puts template }
   puts "Cloud-Init UserData merged into CloudFormation Template!"
 end
 
 desc "Create parameters.yml from the template Parameters section."
 task :parameters do
-  template = JSON.parse(File.open(@template_filename).read)
+  template = JSON.parse(File.open(@config[:template_filename]).read)
   parameters = template['Parameters'].collect{ |k,v| {k => v['Default']} }.to_yaml
-  File.open(@parameters_filename, 'w') { |f| f.puts parameters }
+  File.open(@config[:parameters_filename], 'w') { |f| f.puts parameters }
   puts "CloudFormation Template Parameters Grokked!"
 end
 
 desc "Create Ec2Instance.sh from the Ec2Instance UserData."
 task :userdata do
-  data = JSON.parse(File.open(@template_filename).read)['Resources']['Ec2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Join'][1]
+  data = JSON.parse(File.open(@config[:template_filename]).read)['Resources']['Ec2Instance']['Properties']['UserData']['Fn::Base64']['Fn::Join'][1]
   File.open('userdata_Ec2Instance.sh', 'w') { |f| f.puts data.join }
   puts "UserData!"  
 end
@@ -134,7 +127,7 @@ end
 desc "Create a CloudFormation Stack."
 task :create  => [:validate] do 
   name = "stack-#{DateTime.now.strftime("%s")}"
-  template = File.open(@template_filename).read
+  template = File.open(@config[:template_filename]).read
   begin
     stack = @cfm.stacks.create( name, template, 
       { :parameters => params,
@@ -143,7 +136,7 @@ task :create  => [:validate] do
   rescue AWS::CloudFormation::Errors::ValidationError => e
     puts e.message
   end
-  File.open( @stack_filename, 'w' ){ |file|
+  File.open( @config[:stack_filename], 'w' ){ |file|
     YAML.dump({:stack_name => stack.name}, file)
   }
   puts "Run! stack: #{stack.name}"
@@ -151,8 +144,8 @@ end
 
 desc "Update the CloudFormation Stack"
 task :update => [:validate] do
-  template = File.open(@template_filename).read
-  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  template = File.open(@config[:template_filename]).read
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   begin
     stack = @cfm.stacks[stack_name].update({:template => template, :parameters => params})
     puts "Update! stack #{stack_name}"
@@ -163,8 +156,8 @@ end
 
 desc "Describe the status of the CloudFormation Stack"
 task :status do
-  template = File.open(@template_filename).read
-  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  template = File.open(@config[:template_filename]).read
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   begin
     if @cfm.stacks[stack_name].exists?
       status = @cfm.stacks[stack_name].status
@@ -179,8 +172,8 @@ end
 
 desc "Delete the CloudFormation Stack"
 task :delete do
-  template = File.open(@template_filename).read
-  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  template = File.open(@config[:template_filename]).read
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   begin
     @cfm.stacks[stack_name].delete
     puts "Deleted! stack #{stack_name}"
@@ -191,12 +184,12 @@ end
 
 desc "Get the Outputs from a CloudFormation Stack"
 task :outputs do
-  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   stack = @cfm.stacks[stack_name]
   begin
     if stack.status == 'CREATE_COMPLETE' and not stack.outputs.empty?
       outputs = Hash[stack.outputs.map {|o| [o.key, o.value] }]
-      File.open( @outputs_filename, 'w' ){ |file|
+      File.open( @config[:outputs_filename], 'w' ){ |file|
         YAML.dump(outputs, file)
       }
       puts "Output! stack #{stack_name}"
@@ -211,7 +204,7 @@ end
 
 desc "Get Events from the CloudFormation Stack"
 task :events do
-  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   stack = @cfm.stacks[stack_name]
   events = stack.events.collect {|e| "#{e.timestamp} #{e.resource_type} #{e.logical_resource_id} #{e.physical_resource_id} #{e.resource_status} #{e.resource_status_reason}"}
   File.open( @events_filename, 'w' ){ |file| events }
@@ -347,7 +340,7 @@ end
 
 desc "Gather costs allocated to the CloudFormation stack from the cost allocation report."
 task :cost do
-  stack_name = YAML.load_file(@stack_filename)[:stack_name]
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   reports_dir = YAML.load_file(@config_filename)[:reports_dir]
   files = FileList.new("#{reports_dir}/[0-9{12}]*aws-cost-allocation*.csv")
   puts "Actual! from:"
@@ -369,9 +362,8 @@ task :replace => [:delete, :create]
 
 def register_keypair(keypair, public_key, region)
   public_key = Base64.encode64(public_key.to_der)
-  ec2 = AWS::EC2.new :region => region
   begin
-    ec2.key_pairs.import(keypair, public_key)
+    @ec2.key_pairs.import(keypair, public_key)
     puts "Imported EC2 KeyPair '#{keypair}' in AWS region #{region}."
   rescue AWS::EC2::Errors::InvalidKeyPair::Duplicate
     puts "EC2 KeyPair '#{keypair}' already exists in AWS region #{region}."
@@ -380,9 +372,8 @@ def register_keypair(keypair, public_key, region)
 end
 
 def delete_keypair(keypair, region)
-  ec2 = AWS::EC2.new :region => region
   begin
-    ec2.key_pairs[keypair].delete
+    @ec2.key_pairs[keypair].delete
     puts "Deleted EC2 KeyPair '#{keypair}' in AWS region #{region}."
   rescue Error => e
     puts e

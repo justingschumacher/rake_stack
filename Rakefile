@@ -404,3 +404,25 @@ task :keypair_create do
   public_key = key.public_key
   @aws_regions.each { |region| register_keypair(keyname, public_key, region.name) } 
 end
+
+desc "Get Windows Password"
+task :password do
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
+  stack = @cfm.stacks[stack_name]
+  unless instance_id = stack.resources['Ec2Instance'].physical_resource_id
+    puts "Instance Not Running Yet!"
+  end
+  if password_data = @ec2.client.get_password_data(:instance_id => instance_id)[:password_data]
+  else
+    puts "Instance Running. No Password Data Yet!"
+  end
+  puts get_password(password_data)
+end
+
+def get_password(password_data)
+  key = OpenSSL::PKey::RSA.new File.read '.pk.pem'
+  unless key.private?
+    puts "Not using your private key?"
+  end
+  key.private_decrypt( Base64.decode64 password_data)
+end

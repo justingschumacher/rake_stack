@@ -1,15 +1,21 @@
 :aws_account_id: 
 :access_key_id: 
 :secret_access_key: 
+:region: 
 :billing_bucket: 
 :staging_bucket: 
-:production_bucket:
 :staging_prefix: 
 :keyname: 
-:region:
-:publishing_role_arn: 
-:reports_dir: reports
+:production_bucket: 
+:reports_dir: 
 :includes_file: staging_files_manifest
 :ignores_file: .gitignore
+:publishing_role_arn: 
 :cloudfront_distribution: 
 :mappings_filename: mappings.amzn-linux.2013.3.json
+:template_filename: template.json
+:parameters_filename: parameters.yml
+:outputs_filename: outputs.yml
+:stack_filename: stack.yml
+:log_filename: aws-sdk.log
+:userdata_filename_prefix: userdata_

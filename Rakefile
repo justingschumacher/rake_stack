@@ -276,7 +276,7 @@ task :buckets => [:staging_bucket, :billing_bucket]
 
 desc "Create the Amazon S3 staging Bucket"
 task :staging_bucket do
-  bucket_name = YAML.load_file(@config_filename)[:staging_bucket]
+  bucket_name = @config[:staging_bucket]
   begin
     bucket = @s3.buckets.create(bucket_name)
     puts "Staging Bucket! #{bucket_name}"
@@ -293,7 +293,7 @@ end
 
 desc "Create the Amazon S3 billing Bucket"
 task :billing_bucket do
-  bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
+  bucket_name = @config[:billing_bucket]
   begin
     bucket = @s3.buckets.create(bucket_name)
     puts "Billing Bucket! #{bucket_name}"
@@ -319,8 +319,8 @@ end
 
 desc "Download Cost Allocation and Billing Reports"
 task :reports do
-  bucket_name = YAML.load_file(@config_filename)[:billing_bucket]
-  reports_dir = YAML.load_file(@config_filename)[:reports_dir]
+  bucket_name = @config[:billing_bucket]
+  reports_dir = @config[:reports_dir]
   bucket = @s3.buckets[bucket_name]
   objects = AWS::S3::ObjectCollection.new(bucket, :limit => 100)
   objects.each do |obj|
@@ -340,8 +340,8 @@ end
 
 desc "Gather costs allocated to the CloudFormation stack from the cost allocation report."
 task :cost do
-  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
-  reports_dir = YAML.load_file(@config_filename)[:reports_dir]
+  stack_name  = @config[:stack_name]
+  reports_dir = @config[:reports_dir]
   files = FileList.new("#{reports_dir}/[0-9{12}]*aws-cost-allocation*.csv")
   puts "Actual! from:"
   puts files
@@ -425,4 +425,26 @@ def get_password(password_data)
     puts "Not using your private key?"
   end
   key.private_decrypt( Base64.decode64 password_data)
+end
+
+desc "SSH into the EC2Instance Resource"
+task :ssh do
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
+  stack = @cfm.stacks[stack_name]
+  unless instance_id = stack.resources['Ec2Instance'].physical_resource_id
+    puts "Instance Not Running Yet!"
+  end
+  dns_name = @ec2.instances[instance_id].dns_name
+  # TODO check host signature
+  sh "ssh -i .pk.pem ec2-user@#{dns_name}"
+end
+
+desc "Grab the chef-solo, cloud-init, cfn-init"
+task :logs do
+ # scp
+end
+
+desc "Bundle, stage, run, chef-solo"
+task :chef do
+  # ssh chef-solo
 end

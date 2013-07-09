@@ -439,6 +439,16 @@ task :ssh do
   sh "ssh -i .pk.pem ec2-user@#{dns_name}"
 end
 
+desc "Open RDP Session"
+task :rdp do
+  stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
+  stack = @cfm.stacks[stack_name]
+  instance_id = stack.resources['Ec2Instance'].physical_resource_id
+  hostname = @ec2.instances[instance_id].dns_name
+  password = params()["AdministratorPassword"]
+  sh 'open', "rdp://Administrator:#{password}@#{hostname}"
+end
+
 desc "Grab the chef-solo, cloud-init, cfn-init"
 task :logs do
  # scp

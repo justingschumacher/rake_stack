@@ -207,7 +207,6 @@ task :events do
   stack_name = YAML.load_file(@config[:stack_filename])[:stack_name]
   stack = @cfm.stacks[stack_name]
   events = stack.events.collect {|e| "#{e.timestamp} #{e.resource_type} #{e.logical_resource_id} #{e.physical_resource_id} #{e.resource_status} #{e.resource_status_reason}"}
-  File.open( @events_filename, 'w' ){ |file| events }
   puts events
 end
 
